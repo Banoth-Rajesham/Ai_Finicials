@@ -1,6 +1,5 @@
 # ==============================================================================
 # FINAL, COMPLETE, AND CORRECTED my_appy.py
-# This version correctly imports from your new file structure.
 # ==============================================================================
 import streamlit as st
 import sys
