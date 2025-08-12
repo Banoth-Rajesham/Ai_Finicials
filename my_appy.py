@@ -1,5 +1,6 @@
 # ==============================================================================
 # FINAL, COMPLETE, AND CORRECTED my_appy.py
+# This version correctly imports from your new file structure.
 # ==============================================================================
 import streamlit as st
 import sys
@@ -19,7 +20,9 @@ if project_root not in sys.path:
 
 # --- Now, all imports will work correctly from the root ---
 try:
-    from configuration.config import MASTER_TEMPLATE
+    # CORRECTED IMPORT PATHS to match your new file structure
+    from configuration.MASTER_TEMPLATE import MASTER_TEMPLATE
+    from configuration.NOTES_STRUCTURE_AND_MAPPING import NOTES_STRUCTURE_AND_MAPPING
     from agents.agent_1_intake import intelligent_data_intake_agent
     from agents.agent_2_ai_mapping import ai_mapping_agent
     from agents.agent_3_aggregator import hierarchical_aggregator_agent
@@ -86,7 +89,6 @@ def create_visual_pdf_report(kpis, ai_analysis, charts, company_name, sheets_dat
 
 # --- MAIN STREAMLIT APP ---
 st.set_page_config(page_title="Financial Dashboard", page_icon="📈", layout="wide")
-# Initialize session state
 if 'report_generated' not in st.session_state: st.session_state.report_generated = False
 if 'excel_report_bytes' not in st.session_state: st.session_state.excel_report_bytes = None
 if 'kpis' not in st.session_state: st.session_state.kpis = None
@@ -101,7 +103,7 @@ with st.sidebar:
         if uploaded_file and company_name:
             with st.spinner("Executing financial agent pipeline..."):
                 st.info("Step 1/5: Ingesting data..."); source_df = intelligent_data_intake_agent(uploaded_file)
-                st.info("Step 2/5: Mapping terms..."); refined_mapping = ai_mapping_agent(source_df['Particulars'].tolist(), MASTER_TEMPLATE['Notes to Accounts'])
+                st.info("Step 2/5: Mapping terms..."); refined_mapping = ai_mapping_agent(source_df['Particulars'].tolist(), NOTES_STRUCTURE_AND_MAPPING)
                 st.info("Step 3/5: Aggregating values..."); aggregated_data = hierarchical_aggregator_agent(source_df, refined_mapping)
                 st.info("Step 4/5: Validating balances..."); warnings = data_validation_agent(aggregated_data)
                 st.info("Step 5/5: Generating report..."); excel_report_bytes = report_finalizer_agent(aggregated_data, company_name)
