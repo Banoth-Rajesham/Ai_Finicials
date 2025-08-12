@@ -1,78 +1,31 @@
 # ==============================================================================
-# PASTE THIS ENTIRE, CORRECTED BLOCK INTO: agent_3_aggregator.py
+# PASTE THIS ENTIRE, CORRECTED BLOCK INTO: agent_4_validator.py
 # ==============================================================================
-import pandas as pd
-
-def hierarchical_aggregator_agent(source_df, notes_structure):
+def data_validation_agent(aggregated_data):
     """
-    AGENT 3: Aggregates financial data based on the mapping structure and intelligently
-    propagates summary-level data down to the most logical sub-item.
+    AGENT 4: Performs automated checks on the aggregated data.
     """
-    print("\n--- Agent 3 (Hierarchical Aggregator): Processing data... ---")
-    source_df['Particulars_clean'] = source_df['Particulars'].str.lower().str.strip()
-    source_df['Amount_CY'] = pd.to_numeric(source_df['Amount_CY'], errors='coerce').fillna(0)
-    source_df['Amount_PY'] = pd.to_numeric(source_df['Amount_PY'], errors='coerce').fillna(0)
-
-    def flatten_keywords(structure):
-        keyword_map = {}
-        def recurse(node, path):
-            for key, value in node.items():
-                new_path = path + (key,)
-                if isinstance(value, list):
-                    for keyword in value: keyword_map[keyword.lower().strip()] = new_path
-                elif isinstance(value, dict):
-                    recurse(value, new_path)
-        for note_num, note_data in structure.items():
-            if 'sub_items' in note_data: recurse(note_data['sub_items'], (note_num,))
-        return keyword_map
-    
-    keyword_to_path = flatten_keywords(notes_structure)
-    aggregated_data = {note: {'total': {'CY': 0, 'PY': 0}, 'sub_items': {}, 'title': data.get('title', '')} for note, data in notes_structure.items()}
-
-    for _, row in source_df.iterrows():
-        term = row['Particulars_clean']
-        if term in keyword_to_path:
-            path = keyword_to_path[term]
-            note_num = path[0]
-            current_level = aggregated_data[note_num]['sub_items']
-            for part in path[1:-1]:
-                current_level = current_level.setdefault(part, {})
-            final_key = path[-1]
-            item = current_level.setdefault(final_key, {'CY': 0, 'PY': 0})
-            item['CY'] += row['Amount_CY']
-            item['PY'] += row['Amount_PY']
-
-    for note_num, note_data in aggregated_data.items():
-        def sum_totals(sub_item_dict):
-            cy_total, py_total = 0, 0
-            for key, value in sub_item_dict.items():
-                if isinstance(value, dict) and 'CY' in value:
-                    cy_total += value['CY']; py_total += value['PY']
-                elif isinstance(value, dict):
-                    sub_cy, sub_py = sum_totals(value)
-                    value['total'] = {'CY': sub_cy, 'PY': sub_py}
-                    cy_total += sub_cy; py_total += sub_py
-            return cy_total, py_total
-
-        note_total_cy, note_total_py = sum_totals(note_data['sub_items'])
-        aggregated_data[note_num]['total'] = {'CY': note_total_cy, 'PY': note_total_py}
-        note_title = note_data['title'].lower()
-        if note_total_cy == 0:
-            matched_row = source_df[source_df['Particulars_clean'] == note_title]
-            if not matched_row.empty:
-                propagated_cy = matched_row['Amount_CY'].sum()
-                propagated_py = matched_row['Amount_PY'].sum()
-                def assign_propagated(sub_items):
-                    for key, value in sub_items.items():
-                        if isinstance(value, dict) and 'CY' in value:
-                            value['CY'] = propagated_cy; value['PY'] = propagated_py
-                            return True
-                        if isinstance(value, dict) and assign_propagated(value):
-                            return True
-                    return False
-                if assign_propagated(note_data['sub_items']):
-                    print(f"  -> Propagated summary value for Note {note_num}.")
-                    note_total_cy, note_total_py = sum_totals(note_data['sub_items'])
-                    aggregated_data[note_num]['total'] = {'CY': note_total_cy, 'PY': note_total_py}
-    print("✅ Aggregation & Propagation SUCCESS: Data processed into hierarchical structure.")
-    return aggregated_data
+    print("\n--- Agent 4 (Data Validation): Checking data integrity... ---")
+    warnings = []
+    for year in ['CY', 'PY']:
+        year_label = "2025" if year == 'CY' else "2024"
+        get_total = lambda key: aggregated_data.get(key, {}).get('total', {}).get(year, 0)
+        equity_notes = ['1', '2']
+        liability_notes = ['3', '5', '6', '7', '8', '9', '10']
+        asset_notes = ['11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+        deferred_tax = get_total('4')
+        total_equity = sum(get_total(n) for n in equity_notes)
+        total_liabilities = sum(get_total(n) for n in liability_notes)
+        total_assets = sum(get_total(n) for n in asset_notes)
+        final_liabilities_equity = total_equity + total_liabilities + deferred_tax
+        final_assets = total_assets + deferred_tax
+        if abs(final_assets - final_liabilities_equity) > 5.0:
+            warnings.append(
+                f"CRITICAL ({year_label}): Accounting equation out of balance! "
+                f"Assets ({final_assets:,.2f}) != Liabilities + Equity ({final_liabilities_equity:,.2f})"
+            )
+    if not warnings:
+        print("✅ Validation PASSED: All checks are clear.")
+    else:
+        print("⚠️  Validation FINISHED with warnings.")
+    return warnings
